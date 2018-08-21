@@ -1,41 +1,66 @@
 package com.example.firebasetest;
 
-import android.provider.Settings;
-import android.support.v7.app.AppCompatActivity;
+import android.content.Intent;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
+import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.Toast;
 
 import com.firebase.client.Firebase;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.AuthResult;
+import com.google.firebase.auth.FirebaseAuth;
 
 public class MainActivity extends AppCompatActivity {
 
-    private EditText editTextKey, editTextValue;
+    private EditText editTextEmail, editTextPassword;
     private View button;
-    Firebase mFirebase;
 
-    String deviceId = "";
+    FirebaseAuth mFirebaseAuth;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        //Get device id.
-        deviceId = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
-
+        //1.Set Firebase context.
         Firebase.setAndroidContext(this);
-        mFirebase = new Firebase("https://fir-test-a5456.firebaseio.com/Users/"+deviceId);
+        //2.Get FirebaseAuth instance.
+        mFirebaseAuth = FirebaseAuth.getInstance();
+        //3.check if current user exist.
+        if(mFirebaseAuth.getCurrentUser() != null){
+            //If yse, Go to welcome screen. if not continue with create user screen.
+            Intent intent = new Intent(MainActivity.this, HomeActivity.class);
+            startActivity(intent);
+            finish();
+        }
 
-        editTextKey = findViewById(R.id.editTextKey);
-        editTextValue = findViewById(R.id.editTextValue);
+        editTextEmail = findViewById(R.id.editTextEmail);
+        editTextPassword = findViewById(R.id.editTextPassword);
         button = findViewById(R.id.button);
 
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Firebase childFireBase = mFirebase.child(editTextKey.getText().toString());
-                childFireBase.setValue(editTextValue.getText().toString());
+                createNewUser(editTextEmail.getText().toString(), editTextPassword.getText().toString());
+            }
+        });
+    }
+
+    private void createNewUser(String email, String password){
+        mFirebaseAuth.createUserWithEmailAndPassword(email, password).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
+            @Override
+            public void onComplete(@NonNull Task<AuthResult> task) {
+                if(task.isSuccessful()){
+                    Intent intent = new Intent(MainActivity.this, HomeActivity.class);
+                    startActivity(intent);
+                    finish();
+                } else {
+                    Toast.makeText(MainActivity.this, "Failed", Toast.LENGTH_LONG).show();
+                }
             }
         });
     }
